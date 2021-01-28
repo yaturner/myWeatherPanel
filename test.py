@@ -23,17 +23,23 @@ class panelApp(SampleBase):
     global iconSize
     global weatherClient
     global alertArray
+    global icons
 
     def handler(self, signum, frame):
         sys.exit(0)
-    
+
+    """
+    Initialize
+    """
     def __init__(self, *args, **kwargs):
         super(panelApp, self).__init__(*args, **kwargs)
         self.sig = signal.SIGINT
         signal.signal(self.sig, self.handler)
     
 
-    # >>>>>>>>>MQTT<<<<<<<<<<< 
+    """
+    MQTT
+    """
     def onMessage(self, client, userdata, message):
         topic = str(message.topic)
         msg = str(message.payload)
@@ -51,6 +57,21 @@ class panelApp(SampleBase):
             self.alertArray.append(alert["description"].replace("\n", " "))
             i = i + 1
 
+    """
+    Image handlers
+    """
+    def trimImage(self, image):
+        width, height = image.size
+        image_data = np.asarray(image)
+        image_data_bw = image_data.max(axis=2)
+        non_empty_columns = np.where(image_data_bw.max(axis=0)>0)[0]
+        non_empty_rows = np.where(image_data_bw.max(axis=1)>0)[0]
+        cropBox = (min(non_empty_rows), max(non_empty_rows), min(non_empty_columns),
+                   max(non_empty_columns))
+        image_data_new = image_data[cropBox[0]:cropBox[1]+1, cropBox[2]:cropBox[3]+1 , :]
+        new_image = Image.fromarray(image_data_new)
+        return new_image
+
     def loadIcon(self, iconId):
         url = "http://openweathermap.org/img/w/" + iconId + ".png"
         r = requests.get(url, allow_redirects=True)
@@ -59,7 +80,8 @@ class panelApp(SampleBase):
         rgba = np.array(img)
         rgba[rgba[...,-1]==0] = [0, 0, 0, 0]
         im = Image.fromarray(rgba)
-        im.thumbnail((24, 24))
+        im = self.trimImage(im)
+        im.thumbnail((36, 36))
         output = io.BytesIO()
         im.save(output, format='png')
         self.icons[iconId] = output.getvalue()
@@ -72,13 +94,16 @@ class panelApp(SampleBase):
         self.textColor = graphics.Color(0, 0, 128)
         self.xpos = 0
         self.alertArray = []
-        self.weatherIcons=["Moon.png", "Rain_Heavy.png", "Rain_Light.png",
-                          "Rain_Light_Sun.png", "Rain_Medium.png", "Sun.png",
-                          "Thunder.png", "Wind.png"]
-        self.iconSize=16
-        self.icons = {}
         # prime the dictionary with the most common
-
+        self.icons = {}
+        self.loadIcon("01d")
+        self.loadIcon("02d")
+        self.loadIcon("03d")
+        self.loadIcon("10d")
+        self.loadIcon("10n")
+        self.loadIcon("02n")
+        self.loadIcon("03n")
+        
         self.weatherClient = mqtt.Client("IoTMaster")
         self.weatherClient.connect("IoTMaster.local", 1883)
         self.weatherClient.subscribe("weather")
@@ -102,11 +127,10 @@ class panelApp(SampleBase):
         slen3=0
         lineHeight = 10
 
-        ypos = self.offscreen_canvas.height - lineHeight
+        ypos = self.offscreen_canvas.height - 4
         self.xpos=self.offscreen_canvas.width
 
-        self.loadIcon("01d")
-        imgfile = StringIO(self.icons["01d"])
+        imgfile = StringIO(self.icons["10n"])
         im = Image.open(imgfile)
 
         while True:
@@ -124,7 +148,7 @@ class panelApp(SampleBase):
                                          self.xpos, ypos, self.textColor,
                                          self.alertArray[alertNo])
             
-            self.offscreen_canvas.SetImage(im.convert('RGB'), 42, 2*lineHeight)
+            self.offscreen_canvas.SetImage(im.convert('RGB'), 42, 2*lineHeight + 4)
 
             self.xpos = self.xpos - 1;
             if (self.xpos + slen3) < 0:
