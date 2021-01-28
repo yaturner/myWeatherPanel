@@ -59,7 +59,7 @@ class panelApp(SampleBase):
         rgba = np.array(img)
         rgba[rgba[...,-1]==0] = [0, 0, 0, 0]
         im = Image.fromarray(rgba)
-        im.thumbnail((36, 36))
+        im.thumbnail((24, 24))
         output = io.BytesIO()
         im.save(output, format='png')
         self.icons[iconId] = output.getvalue()
@@ -104,7 +104,11 @@ class panelApp(SampleBase):
 
         ypos = self.offscreen_canvas.height - lineHeight
         self.xpos=self.offscreen_canvas.width
-        
+
+        self.loadIcon("01d")
+        imgfile = StringIO(self.icons["01d"])
+        im = Image.open(imgfile)
+
         while True:
             self.offscreen_canvas.Clear()
             now = datetime.now()
@@ -120,13 +124,6 @@ class panelApp(SampleBase):
                                          self.xpos, ypos, self.textColor,
                                          self.alertArray[alertNo])
             
-            self.loadIcon("01d")
-            imgfile = StringIO(self.icons["01d"])
-            im = Image.open(imgfile)
-#            rgba = np.array(Image.open(imgfile))
-#            rgba[rgba[...,-1]==0] = [0, 0, 0, 0]
-#            im = Image.fromarray(rgba)
-#            im.thumbnail((36, 36))
             self.offscreen_canvas.SetImage(im.convert('RGB'), 42, 2*lineHeight)
 
             self.xpos = self.xpos - 1;
@@ -136,15 +133,11 @@ class panelApp(SampleBase):
                 if alertNo >= len(self.alertArray):
                     alertNo = 0
                 
-#            print("len = {}".format(len))
-#            for icon in self.weatherIcons:
-#                self.drawImage("./Images/PNG/" + icon)
-#                self.xpos = self.xpos + self.iconSize
             if first:
                 first = False
                 self.offscreen_canvas = self.matrix.SwapOnVSync(self.offscreen_canvas)
             else:
-                time.sleep(0.01)
+                time.sleep(0.05)
                 self.offscreen_canvas = self.matrix.SwapOnVSync(self.offscreen_canvas)
             
 
