@@ -12,6 +12,7 @@ import requests
 import io
 from cStringIO import StringIO
 import numpy as np
+from os import path
 
 class panelApp(SampleBase):
     global offscreen_canvas
@@ -72,19 +73,26 @@ class panelApp(SampleBase):
         new_image = Image.fromarray(image_data_new)
         return new_image
 
-    def loadIcon(self, iconId):
+    """
+    load and save the png to disk iffi it is not already saved
+    """
+    def loadAndSaveIcon(self, iconId):
         url = "http://openweathermap.org/img/w/" + iconId + ".png"
         r = requests.get(url, allow_redirects=True)
-        imgfile = StringIO(r.content)
-        img = Image.open(imgfile)
-        rgba = np.array(img)
-        rgba[rgba[...,-1]==0] = [0, 0, 0, 0]
-        im = Image.fromarray(rgba)
-        im = self.trimImage(im)
-        im.thumbnail((36, 36))
-        output = io.BytesIO()
-        im.save(output, format='png')
-        self.icons[iconId] = output.getvalue()
+        filename = iconId + ".png"
+        if not path.exists(filename): 
+            imgfile = StringIO(r.content)
+            img = Image.open(imgfile)
+            rgba = np.array(img)
+            rgba[rgba[...,-1]==0] = [0, 0, 0, 0]
+            im = Image.fromarray(rgba)
+            im = self.trimImage(im)
+            im.thumbnail((36, 36))
+            im.save(filename)
+        
+#        output = io.BytesIO()
+#        im.save(output, format='png')
+#        self.icons[iconId] = output.getvalue()
 
         
     def setup(self):
@@ -94,15 +102,14 @@ class panelApp(SampleBase):
         self.textColor = graphics.Color(0, 0, 128)
         self.xpos = 0
         self.alertArray = []
-        # prime the dictionary with the most common
-        self.icons = {}
-        self.loadIcon("01d")
-        self.loadIcon("02d")
-        self.loadIcon("03d")
-        self.loadIcon("10d")
-        self.loadIcon("10n")
-        self.loadIcon("02n")
-        self.loadIcon("03n")
+# prime the directory with the most common
+        self.loadAndSaveIcon("01d")
+        self.loadAndSaveIcon("02d")
+        self.loadAndSaveIcon("03d")
+        self.loadAndSaveIcon("10d")
+        self.loadAndSaveIcon("10n")
+        self.loadAndSaveIcon("02n")
+        self.loadAndSaveIcon("03n")
         
         self.weatherClient = mqtt.Client("IoTMaster")
         self.weatherClient.connect("IoTMaster.local", 1883)
@@ -130,9 +137,9 @@ class panelApp(SampleBase):
         ypos = self.offscreen_canvas.height - 4
         self.xpos=self.offscreen_canvas.width
 
-        imgfile = StringIO(self.icons["10n"])
-        im = Image.open(imgfile)
-
+        filename = "02d.png"
+        im = Image.open(filename)
+        
         while True:
             self.offscreen_canvas.Clear()
             now = datetime.now()
