@@ -1,6 +1,6 @@
 #!/usr/bin/python
 from samplebase import SampleBase
-from rgbmatrix import graphics
+from rgbmatrix import graphics, RGBMatrix, RGBMatrixOptions
 from PIL import Image
 import time
 from datetime import datetime
@@ -15,17 +15,6 @@ import numpy as np
 from os import path
 
 class panelApp(SampleBase):
-    global offscreen_canvas
-    global font
-    global textColor
-    global xpos
-    global pos
-    global weather_icons
-    global iconSize
-    global weatherClient
-    global todaysIcon
-    global alertArray
-#    global lineSpacing
 
     def handler(self, signum, frame):
         sys.exit(0)
@@ -39,20 +28,22 @@ class panelApp(SampleBase):
         signal.signal(self.sig, self.handler)
     
 
-    """
-    MQTT
-    """
-    def onMessage(self, client, userdata, message):
-        topic = str(message.topic)
-        msg = str(message.payload)
-        jsonString=json.loads(msg)
-        current=jsonString["current"]
+    def getWeather(self):
+        r = requests.get(url=self.weatherUri, params=self.params)
+        data = r.json()
+        self.parseData(data)
+        
+
+    def parseData(self, data):
+        current=data["current"]
         self.sunrise=current["sunrise"]
         self.sunset=current["sunset"]
         self.temperatureNow=current["temp"]
         self.clouds=current["clouds"]
         self.windSpeed=current["wind_speed"]
-        alerts=jsonString["alerts"]
+        self.windDir=self.degToCompass(int(current["wind_deg"]))
+        self.humidity=current["humidity"]
+        alerts=data["alerts"]
         iconId = current["weather"][0]["icon"]
         self.loadAndSaveIcon(iconId)
         filename = iconId + ".png"
@@ -64,12 +55,18 @@ class panelApp(SampleBase):
             self.alertArray.append(alert["description"].replace("\n", " "))
             i = i + 1
 
-        daily = jsonString["daily"]
+        daily = data["daily"]
         temperatures = daily[0]["temp"]
         self.minTemp = temperatures["min"]
         self.maxTemp = temperatures["max"]
 
-        
+
+    def degToCompass(self, num):
+        val=int((num/22.5)+.5)
+        arr=["N","NNE","NE","ENE","E","ESE", "SE", "SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"]
+        return arr[(val % 16)]
+    
+
     """
     Image handlers
     """
@@ -84,6 +81,7 @@ class panelApp(SampleBase):
         image_data_new = image_data[cropBox[0]:cropBox[1]+1, cropBox[2]:cropBox[3]+1 , :]
         new_image = Image.fromarray(image_data_new)
         return new_image
+
 
     """
     load and save the png to disk iffi it is not already saved
@@ -102,41 +100,7 @@ class panelApp(SampleBase):
             im.thumbnail((36, 36))
             im.save(filename)
         
-#        output = io.BytesIO()
-#        im.save(output, format='png')
-#        self.icons[iconId] = output.getvalue()
-
         
-    def setup(self):
-        self.offscreen_canvas = self.matrix.CreateFrameCanvas()
-        self.font = graphics.Font()
-        self.font.LoadFont("../../../../fonts/7x13.bdf")
-        self.fontB = graphics.Font()
-        self.fontB.LoadFont("../../../../fonts/7x13B.bdf")
-        self.fontMed = graphics.Font()
-        self.fontMed.LoadFont("../../../../fonts/6x9.bdf")
-        self.textColor = graphics.Color(0, 0, 128)
-        self.xpos = 0
-        self.lineSpacing = 4
-        self.degreeSign = str("\u00B0")
-        self.alertArray = []
-# prime the directory with the most common
-        self.loadAndSaveIcon("01d")
-        self.loadAndSaveIcon("02d")
-        self.loadAndSaveIcon("03d")
-        self.loadAndSaveIcon("10d")
-        self.loadAndSaveIcon("10n")
-        self.loadAndSaveIcon("02n")
-        self.loadAndSaveIcon("03n")
-        
-        self.weatherClient = mqtt.Client("IoTMaster")
-        self.weatherClient.connect("IoTMaster.local", 1883)
-        self.weatherClient.subscribe("weather")
-        self.weatherClient.on_message=self.onMessage
-
-        self.weatherIcon = None
-
-
     def drawImage(self, imageFilename):
         image=Image.open(imageFilename)
         image.thumbnail((self.iconSize, self.iconSize), Image.ANTIALIAS)
@@ -145,13 +109,11 @@ class panelApp(SampleBase):
 
 
     def drawScreen(self):
-        first = True
         pos = 0
         alertNo = 0
-        slen1=0
-        slen2=0
-        slen3=0
         lineHeight = 10
+
+        data = self.getWeather()
 
         ypos = self.offscreen_canvas.height - self.lineSpacing
         self.xpos=self.offscreen_canvas.width
@@ -161,8 +123,13 @@ class panelApp(SampleBase):
             now = datetime.now()
             timeNow = now.strftime("%I:%M")
             dateNow = now.strftime("%a %b %-d %Y")
+            timeMin = now.strftime("%M")
             self.offscreen_canvas.Clear()
 
+            # get the weather info every 30 min
+            if timeMin == "00" or timeMin == "30":
+                data = self.getWeather()
+                
             # draw the date
             slen1 = graphics.DrawText(self.offscreen_canvas, self.font,
                                     12, lineHeight, self.textColor, dateNow)
@@ -174,21 +141,43 @@ class panelApp(SampleBase):
                 slen3 = graphics.DrawText(self.offscreen_canvas, self.fontMed,
                                          self.xpos, ypos, graphics.Color(255, 20, 20),
                                          self.alertArray[alertNo])
-            # draw the weather icon
+    
+            # draw the weather info iffi the http request has completed
+            #
             if not self.weatherIcon == None:
                 self.offscreen_canvas.SetImage(self.weatherIcon.convert('RGB'), 42,
                                                2*lineHeight + self.lineSpacing)
 
+                # draw the label
+                slen = graphics.DrawText(self.offscreen_canvas, self.fontSmall,
+                                         2, 2*lineHeight+self.lineSpacing, graphics.Color(255, 255, 255),
+                                         "Now:")
+                
                 # draw the current temperature
                 slen4 = graphics.DrawText(self.offscreen_canvas, self.fontMed,
-                                          2, 2*(lineHeight+self.lineSpacing), graphics.Color(0, 255, 0),
-                                          self.temperatureNow)
+                                          2, 3*lineHeight+self.lineSpacing, graphics.Color(0, 255, 0),
+                                          str(int(self.temperatureNow)) + u'\u00b0'+"F")
+                # draw the hunidity
+                slen4 = graphics.DrawText(self.offscreen_canvas, self.fontMed,
+                                          2, 4*lineHeight+self.lineSpacing, graphics.Color(0, 128, 255),
+                                          str(int(self.humidity)) + "%")
+                # draw the wind speed and direction
+                slen4 = graphics.DrawText(self.offscreen_canvas, self.fontMed,
+                                          12, 5*lineHeight + 1, graphics.Color(0, 255, 255),
+                                          str(int(self.windSpeed)) + "mph from the " + self.windDir)
+                
+                
+                # draw the label
+                slen = graphics.DrawText(self.offscreen_canvas, self.fontSmall,
+                                         50+46, 2*lineHeight+self.lineSpacing, graphics.Color(255, 255, 255),
+                                         "Today:")
+                
                 # draw the min/max temperatures
                 slen5 = graphics.DrawText(self.offscreen_canvas, self.fontMed,
-                                          50+36, 2*(lineHeight+self.lineSpacing),
+                                          50+36, 3*lineHeight+self.lineSpacing,
                                           graphics.Color(0, 255, 128),
-                                          str(int(self.minTemp))+"/"+
-                                          str(int(self.maxTemp))+"")
+                                          str(int(self.minTemp)) + "/" +
+                                          str(int(self.maxTemp)) + u'\u00b0'+"F")
                 
             
             self.xpos = self.xpos - 1;
@@ -198,23 +187,59 @@ class panelApp(SampleBase):
                 if alertNo >= len(self.alertArray):
                     alertNo = 0
                 
-            if first:
-                first = False
-                self.offscreen_canvas = self.matrix.SwapOnVSync(self.offscreen_canvas)
-            else:
-                time.sleep(0.05)
-                self.offscreen_canvas = self.matrix.SwapOnVSync(self.offscreen_canvas)
-            
+            time.sleep(0.05)
+            self.offscreen_canvas = self.matrix.SwapOnVSync(self.offscreen_canvas)
 
+                
+    def setup(self):
+        self.weatherUri="https://api.openweathermap.org/data/2.5/onecall"
+        self.params="lat=33.6&lon=-117.9&appid=17c7b734912600e7ef20249e9bb1afaf&units=imperial"
+        # Configuration for the matrix
+        options = RGBMatrixOptions()
+        options.cols = 64
+        options.chain_length = 4
+        options.parallel = 1
+        options.hardware_mapping = 'adafruit-hat'
+        options.pixel_mapper_config="U-mapper"
+        self.matrix = RGBMatrix(options = options)
+        
+        self.offscreen_canvas = self.matrix.CreateFrameCanvas()
+        self.font = graphics.Font()
+        self.font.LoadFont("../../../../fonts/7x13.bdf")
+        self.fontB = graphics.Font()
+        self.fontB.LoadFont("../../../../fonts/7x13B.bdf")
+        self.fontMed = graphics.Font()
+        self.fontMed.LoadFont("../../../../fonts/6x9.bdf")
+        self.fontSmall = graphics.Font()
+        self.fontSmall.LoadFont("../../../../fonts/5x8.bdf")
+        self.textColor = graphics.Color(0, 0, 128)
+        self.xpos = 0
+        self.lineSpacing = 1
+    
+        self.degreeSign = '\u00B0'
+        
+        self.alertArray = []
+        
+        # prime the directory with the most common icons
+        self.loadAndSaveIcon("01d")
+        self.loadAndSaveIcon("02d")
+        self.loadAndSaveIcon("03d")
+        self.loadAndSaveIcon("10d")
+        self.loadAndSaveIcon("10n")
+        self.loadAndSaveIcon("02n")
+        self.loadAndSaveIcon("03n")
+        
+        self.weatherIcon = None
+
+def main():
+    app = panelApp()
+    app.setup()
+    app.drawScreen()
+
+        
 # Main function
 if __name__ == "__main__":
-    app = panelApp()
-    if (not app.process()):
-        app.print_help()
-    else:
-        app.setup()
-        app.weatherClient.loop_start()
-        app.drawScreen()
-        
+    main()
+    
         
 
