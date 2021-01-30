@@ -23,8 +23,9 @@ class panelApp(SampleBase):
     global weather_icons
     global iconSize
     global weatherClient
+    global todaysIcon
     global alertArray
-    global icons
+#    global lineSpacing
 
     def handler(self, signum, frame):
         sys.exit(0)
@@ -46,18 +47,29 @@ class panelApp(SampleBase):
         msg = str(message.payload)
         jsonString=json.loads(msg)
         current=jsonString["current"]
-        sunrise=current["sunrise"]
-        sunset=current["sunset"]
-        temp=current["temp"].split(u'\xb0')[0] + "'F"
-        clouds=current["clouds"]
-        windSpeed=current["wind_speed"]
+        self.sunrise=current["sunrise"]
+        self.sunset=current["sunset"]
+        self.temperatureNow=current["temp"]
+        self.clouds=current["clouds"]
+        self.windSpeed=current["wind_speed"]
         alerts=jsonString["alerts"]
+        iconId = current["weather"][0]["icon"]
+        self.loadAndSaveIcon(iconId)
+        filename = iconId + ".png"
+        self.weatherIcon = Image.open(filename)
+
         i = 0
         self.alertArray = []
         for alert in alerts:
             self.alertArray.append(alert["description"].replace("\n", " "))
             i = i + 1
 
+        daily = jsonString["daily"]
+        temperatures = daily[0]["temp"]
+        self.minTemp = temperatures["min"]
+        self.maxTemp = temperatures["max"]
+
+        
     """
     Image handlers
     """
@@ -99,8 +111,14 @@ class panelApp(SampleBase):
         self.offscreen_canvas = self.matrix.CreateFrameCanvas()
         self.font = graphics.Font()
         self.font.LoadFont("../../../../fonts/7x13.bdf")
+        self.fontB = graphics.Font()
+        self.fontB.LoadFont("../../../../fonts/7x13B.bdf")
+        self.fontMed = graphics.Font()
+        self.fontMed.LoadFont("../../../../fonts/6x9.bdf")
         self.textColor = graphics.Color(0, 0, 128)
         self.xpos = 0
+        self.lineSpacing = 4
+        self.degreeSign = str("\u00B0")
         self.alertArray = []
 # prime the directory with the most common
         self.loadAndSaveIcon("01d")
@@ -116,6 +134,7 @@ class panelApp(SampleBase):
         self.weatherClient.subscribe("weather")
         self.weatherClient.on_message=self.onMessage
 
+        self.weatherIcon = None
 
 
     def drawImage(self, imageFilename):
@@ -125,7 +144,7 @@ class panelApp(SampleBase):
         
 
 
-    def drawClock(self):
+    def drawScreen(self):
         first = True
         pos = 0
         alertNo = 0
@@ -134,11 +153,8 @@ class panelApp(SampleBase):
         slen3=0
         lineHeight = 10
 
-        ypos = self.offscreen_canvas.height - 4
+        ypos = self.offscreen_canvas.height - self.lineSpacing
         self.xpos=self.offscreen_canvas.width
-
-        filename = "02d.png"
-        im = Image.open(filename)
         
         while True:
             self.offscreen_canvas.Clear()
@@ -146,17 +162,35 @@ class panelApp(SampleBase):
             timeNow = now.strftime("%I:%M")
             dateNow = now.strftime("%a %b %-d %Y")
             self.offscreen_canvas.Clear()
-            slen1 = graphics.DrawText(self.offscreen_canvas, self.font,
-                                    0, lineHeight, self.textColor, dateNow)
-            slen2 = graphics.DrawText(self.offscreen_canvas, self.font,
-                                    50, 2 * lineHeight, self.textColor, timeNow)
-            if len(self.alertArray) > 0:
-                slen3 = graphics.DrawText(self.offscreen_canvas, self.font,
-                                         self.xpos, ypos, self.textColor,
-                                         self.alertArray[alertNo])
-            
-            self.offscreen_canvas.SetImage(im.convert('RGB'), 42, 2*lineHeight + 4)
 
+            # draw the date
+            slen1 = graphics.DrawText(self.offscreen_canvas, self.font,
+                                    12, lineHeight, self.textColor, dateNow)
+            # draw the time
+            slen2 = graphics.DrawText(self.offscreen_canvas, self.fontB,
+                                    50, 2 * lineHeight, self.textColor, timeNow)
+            # draw the alert text
+            if len(self.alertArray) > 0:
+                slen3 = graphics.DrawText(self.offscreen_canvas, self.fontMed,
+                                         self.xpos, ypos, graphics.Color(255, 20, 20),
+                                         self.alertArray[alertNo])
+            # draw the weather icon
+            if not self.weatherIcon == None:
+                self.offscreen_canvas.SetImage(self.weatherIcon.convert('RGB'), 42,
+                                               2*lineHeight + self.lineSpacing)
+
+                # draw the current temperature
+                slen4 = graphics.DrawText(self.offscreen_canvas, self.fontMed,
+                                          2, 2*(lineHeight+self.lineSpacing), graphics.Color(0, 255, 0),
+                                          self.temperatureNow)
+                # draw the min/max temperatures
+                slen5 = graphics.DrawText(self.offscreen_canvas, self.fontMed,
+                                          50+36, 2*(lineHeight+self.lineSpacing),
+                                          graphics.Color(0, 255, 128),
+                                          str(int(self.minTemp))+"/"+
+                                          str(int(self.maxTemp))+"")
+                
+            
             self.xpos = self.xpos - 1;
             if (self.xpos + slen3) < 0:
                 self.xpos = self.offscreen_canvas.width 
@@ -180,7 +214,7 @@ if __name__ == "__main__":
     else:
         app.setup()
         app.weatherClient.loop_start()
-        app.drawClock()
+        app.drawScreen()
         
         
 
