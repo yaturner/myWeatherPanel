@@ -43,7 +43,11 @@ class panelApp(SampleBase):
         self.windSpeed=current["wind_speed"]
         self.windDir=self.degToCompass(int(current["wind_deg"]))
         self.humidity=current["humidity"]
-        alerts=data["alerts"]
+        # there may not be any alerts currently
+        try:
+            alerts=data["alerts"]
+        except:
+            alerts=[]
         iconId = current["weather"][0]["icon"]
         self.loadAndSaveIcon(iconId)
         filename = iconId + ".png"
@@ -181,7 +185,7 @@ class panelApp(SampleBase):
                 
             
             self.xpos = self.xpos - 1;
-            if (self.xpos + slen3) < 0:
+            if len(self.alertArray) > 0 and (self.xpos + slen3) < 0:
                 self.xpos = self.offscreen_canvas.width 
                 alertNo = alertNo + 1
                 if alertNo >= len(self.alertArray):
