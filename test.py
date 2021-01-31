@@ -128,6 +128,10 @@ class panelApp(SampleBase):
         temperatures = self.daily[0]["temp"]
         minTemp = temperatures["min"]
         maxTemp = temperatures["max"]
+        iconId = self.daily[0]["weather"][0]["icon"]
+        self.loadAndSaveIcon(iconId)
+        filename = iconId + ".png"
+        weatherIcon = Image.open(filename)
 
 
         while True:
@@ -151,10 +155,14 @@ class panelApp(SampleBase):
                     dayName = "Today"
                 else:
                     dayName = time.strftime("%a", time.localtime(self.daily[dayIndex]["dt"]))
-                print("dayName = {}".format(dayName))
+                # print("dayName = {}".format(dayName))
                 temperatures = self.daily[dayIndex]["temp"]
                 minTemp = temperatures["min"]
                 maxTemp = temperatures["max"]
+                iconId = self.daily[dayIndex]["weather"][0]["icon"]
+                self.loadAndSaveIcon(iconId)
+                filename = iconId + ".png"
+                weatherIcon = Image.open(filename)
 
                 
             # draw the date
@@ -172,7 +180,7 @@ class panelApp(SampleBase):
             # draw the weather info iffi the http request has completed
             #
             if not self.weatherIcon == None:
-                self.offscreen_canvas.SetImage(self.weatherIcon.convert('RGB'), 42,
+                self.offscreen_canvas.SetImage(weatherIcon.convert('RGB'), 42,
                                                2*lineHeight + self.lineSpacing)
 
                 # draw the label
