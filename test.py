@@ -59,8 +59,8 @@ class panelApp(SampleBase):
             self.alertArray.append(alert["description"].replace("\n", " "))
             i = i + 1
 
-        daily = data["daily"]
-        temperatures = daily[0]["temp"]
+        self.daily = data["daily"]
+        temperatures = self.daily[0]["temp"]
         self.minTemp = temperatures["min"]
         self.maxTemp = temperatures["max"]
 
@@ -121,18 +121,41 @@ class panelApp(SampleBase):
 
         ypos = self.offscreen_canvas.height - self.lineSpacing
         self.xpos=self.offscreen_canvas.width
-        
+
+        dayIndex = 0
+        dayName = "Today"
+        lastTime = datetime.now().strftime("%S")
+        temperatures = self.daily[0]["temp"]
+        minTemp = temperatures["min"]
+        maxTemp = temperatures["max"]
+
+
         while True:
             self.offscreen_canvas.Clear()
             now = datetime.now()
             timeNow = now.strftime("%I:%M")
             dateNow = now.strftime("%a %b %-d %Y")
             timeMin = now.strftime("%M")
+            timeSec = now.strftime("%S")
             self.offscreen_canvas.Clear()
 
             # get the weather info every 30 min
             if timeMin == "00" or timeMin == "30":
                 data = self.getWeather()
+
+            # increment the dayIndex every minute
+            if int(timeSec) % 10 == 0  and not timeSec == lastTime:
+                dayIndex = (dayIndex + 1) % 7
+                lastTime = timeSec
+                if dayIndex == 0:
+                    dayName = "Today"
+                else:
+                    dayName = time.strftime("%a", time.localtime(self.daily[dayIndex]["dt"]))
+                print("dayName = {}".format(dayName))
+                temperatures = self.daily[dayIndex]["temp"]
+                minTemp = temperatures["min"]
+                maxTemp = temperatures["max"]
+
                 
             # draw the date
             slen1 = graphics.DrawText(self.offscreen_canvas, self.font,
@@ -174,14 +197,14 @@ class panelApp(SampleBase):
                 # draw the label
                 slen = graphics.DrawText(self.offscreen_canvas, self.fontSmall,
                                          50+46, 2*lineHeight+self.lineSpacing, graphics.Color(255, 255, 255),
-                                         "Today:")
+                                         dayName + ":")
                 
                 # draw the min/max temperatures
                 slen5 = graphics.DrawText(self.offscreen_canvas, self.fontMed,
                                           50+36, 3*lineHeight+self.lineSpacing,
                                           graphics.Color(0, 255, 128),
-                                          str(int(self.minTemp)) + "/" +
-                                          str(int(self.maxTemp)) + u'\u00b0'+"F")
+                                          str(int(minTemp)) + "/" +
+                                          str(int(maxTemp)) + u'\u00b0'+"F")
                 
             
             self.xpos = self.xpos - 1;
