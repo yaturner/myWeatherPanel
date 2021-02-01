@@ -249,7 +249,7 @@ class panelApp(SampleBase):
 
     def setup(self):
         config = configparser.ConfigParser()
-        config.read('panelApp.cfg')
+        config.read('weatherApp.cfg')
         
         # Configuration for the led panels, if it doesn't exist
         options = RGBMatrixOptions()
@@ -302,13 +302,13 @@ class panelApp(SampleBase):
 
         self.offscreen_canvas = self.matrix.CreateFrameCanvas()
         self.font = graphics.Font()
-        self.font.LoadFont("../../../../fonts/7x13.bdf")
+        self.font.LoadFont("./fonts/7x13.bdf")
         self.fontB = graphics.Font()
-        self.fontB.LoadFont("../../../../fonts/7x13B.bdf")
+        self.fontB.LoadFont("./fonts/7x13B.bdf")
         self.fontMed = graphics.Font()
-        self.fontMed.LoadFont("../../../../fonts/6x9.bdf")
+        self.fontMed.LoadFont("./fonts/6x9.bdf")
         self.fontSmall = graphics.Font()
-        self.fontSmall.LoadFont("../../../../fonts/5x8.bdf")
+        self.fontSmall.LoadFont("./fonts/5x8.bdf")
         self.textColor = graphics.Color(0, 0, 128)
         self.xpos = 0
         self.lineSpacing = 1
