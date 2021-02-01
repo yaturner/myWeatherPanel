@@ -13,6 +13,8 @@ import io
 from cStringIO import StringIO
 import numpy as np
 from os import path
+import configparser
+
 
 class panelApp(SampleBase):
 
@@ -27,13 +29,21 @@ class panelApp(SampleBase):
         self.sig = signal.SIGINT
         signal.signal(self.sig, self.handler)
     
-
+    """
+    get the curent weather data, if it is unavailable then just use what we have
+    from the last successful call
+    """
     def getWeather(self):
-        r = requests.get(url=self.weatherUri, params=self.params)
-        data = r.json()
-        self.parseData(data)
+        try:
+            r = requests.get(url=self.weatherUri, params=self.params)
+            data = r.json()
+            self.parseData(data)
+        except:
+            pass
         
-
+    """
+    parse the Json returned from getWeather()
+    """
     def parseData(self, data):
         current=data["current"]
         self.sunrise=current["sunrise"]
@@ -225,19 +235,71 @@ class panelApp(SampleBase):
             time.sleep(0.05)
             self.offscreen_canvas = self.matrix.SwapOnVSync(self.offscreen_canvas)
 
-                
+    """
+    error handler for options, if second arg is '', the the whole section is missing
+    or invalid
+    """
+    def handleOptionsError(self, section, key):
+        if key == '':
+            print("The options section '"+section+"' is missing or invalid")
+        else:
+            print("The key '"+key+"' in section '"+section+"' is missing or invalid")
+        sys.exit(-1)
+
+
     def setup(self):
-        self.weatherUri="https://api.openweathermap.org/data/2.5/onecall"
-        self.params="lat=33.6&lon=-117.9&appid=17c7b734912600e7ef20249e9bb1afaf&units=imperial"
-        # Configuration for the matrix
+        config = configparser.ConfigParser()
+        config.read('panelApp.cfg')
+        
+        # Configuration for the led panels, if it doesn't exist
         options = RGBMatrixOptions()
+        #set the default values
         options.cols = 64
+        options.rows = 32
         options.chain_length = 4
         options.parallel = 1
         options.hardware_mapping = 'adafruit-hat'
         options.pixel_mapper_config="U-mapper"
+        if 'LED' in config:
+            ledOptions = config['LED']
+            if 'cols' in ledOptions:
+                options.cols = int(ledOptions['cols'])
+            if 'rows' in ledOptions:
+                options.rows = int(ledOptions['rows'])
+            if 'chain_length' in ledOptions:
+                options.chain_length = int(ledOptions['chain_length'])
+            if 'parallel' in ledOptions:
+                options.parallel = int(ledOptions['parallel'])
+            if 'hardware_mapping' in ledOptions:
+                options.hardware_mapping = ledOptions['hardware_mapping']
+            if 'pixel_mapper_config' in ledOptions:
+                options.pixel_mapper_config = ledOptions['pixel_mapper_config']
         self.matrix = RGBMatrix(options = options)
-        
+
+        if 'WEATHER' in config:
+            weatherOptions = config['WEATHER']
+            if 'lat' in weatherOptions:
+                lat = weatherOptions['lat']
+            else:
+                self.handleOptionsError('WEATHER', 'lat')
+            if 'lon' in weatherOptions:
+                lon = weatherOptions['lon']
+            else:
+                self.handleOptionsError('WEATHER', 'lon')
+            if 'units' in weatherOptions:
+                units = weatherOptions['units']
+            else:
+                units = 'imperial'
+            if 'appid' in weatherOptions:
+                appid = weatherOptions['appid']
+            else:
+                self.handleOptionsError('WEATHER', 'appid')
+        else:
+            self.handleOptionsError('WEATHER', '')
+        self.weatherUri="https://api.openweathermap.org/data/2.5/onecall"
+        self.params="lat="+lat+"&lon="+lon+"&appid="+appid+"&units="+units
+                
+
         self.offscreen_canvas = self.matrix.CreateFrameCanvas()
         self.font = graphics.Font()
         self.font.LoadFont("../../../../fonts/7x13.bdf")
