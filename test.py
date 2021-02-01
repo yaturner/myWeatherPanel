@@ -60,7 +60,7 @@ class panelApp(SampleBase):
             alerts=[]
         iconId = current["weather"][0]["icon"]
         self.loadAndSaveIcon(iconId)
-        filename = iconId + ".png"
+        filename = "./icons" + iconId + ".png"
         self.weatherIcon = Image.open(filename)
 
         i = 0
@@ -102,9 +102,9 @@ class panelApp(SampleBase):
     """
     def loadAndSaveIcon(self, iconId):
         url = "http://openweathermap.org/img/w/" + iconId + ".png"
-        r = requests.get(url, allow_redirects=True)
-        filename = iconId + ".png"
+        filename = "./icons" + iconId + ".png"
         if not path.exists(filename): 
+            r = requests.get(url, allow_redirects=True)
             imgfile = StringIO(r.content)
             img = Image.open(imgfile)
             rgba = np.array(img)
@@ -140,7 +140,7 @@ class panelApp(SampleBase):
         maxTemp = temperatures["max"]
         iconId = self.daily[0]["weather"][0]["icon"]
         self.loadAndSaveIcon(iconId)
-        filename = iconId + ".png"
+        filename = "./icons" + iconId + ".png"
         weatherIcon = Image.open(filename)
 
 
@@ -171,7 +171,7 @@ class panelApp(SampleBase):
                 maxTemp = temperatures["max"]
                 iconId = self.daily[dayIndex]["weather"][0]["icon"]
                 self.loadAndSaveIcon(iconId)
-                filename = iconId + ".png"
+                filename = "./icons" + iconId + ".png"
                 weatherIcon = Image.open(filename)
 
                 
@@ -316,16 +316,6 @@ class panelApp(SampleBase):
         self.degreeSign = '\u00B0'
         
         self.alertArray = []
-        
-        # prime the directory with the most common icons
-        self.loadAndSaveIcon("01d")
-        self.loadAndSaveIcon("02d")
-        self.loadAndSaveIcon("03d")
-        self.loadAndSaveIcon("10d")
-        self.loadAndSaveIcon("10n")
-        self.loadAndSaveIcon("02n")
-        self.loadAndSaveIcon("03n")
-        
         self.weatherIcon = None
 
 def main():
