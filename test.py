@@ -19,6 +19,7 @@ import configparser
 class panelApp(SampleBase):
 
     def handler(self, signum, frame):
+        self.offscreen_canvas.Clear()
         sys.exit(0)
 
     """
@@ -34,12 +35,16 @@ class panelApp(SampleBase):
     from the last successful call
     """
     def getWeather(self):
+        print("getting weather from {}?{} at {}".format(self.weatherUri, self.params,
+                                                        datetime.now().strftime("%c")))
         try:
             r = requests.get(url=self.weatherUri, params=self.params)
-            data = r.json()
-            self.parseData(data)
         except:
-            pass
+            e = sys.exc_info()[0]
+            print("Exception found while getting weather data: " + str(e))
+            return
+        data = r.json()
+        self.parseData(data)
         
     """
     parse the Json returned from getWeather()
@@ -132,47 +137,57 @@ class panelApp(SampleBase):
         ypos = self.offscreen_canvas.height - self.lineSpacing
         self.xpos=self.offscreen_canvas.width
 
+        loopCounter = 0
+        halfhour = 8 * 30 * 60 
+        tensec = 8 * 10 
+        
         dayIndex = 0
         dayName = "Today"
-        lastTime = datetime.now().strftime("%S")
-        temperatures = self.daily[0]["temp"]
-        minTemp = temperatures["min"]
-        maxTemp = temperatures["max"]
-        iconId = self.daily[0]["weather"][0]["icon"]
-        self.loadAndSaveIcon(iconId)
-        filename = "./icons" + iconId + ".png"
-        weatherIcon = Image.open(filename)
+        
+        # initialize the weather info iffi the http request has completed
+        #
+        if not self.weatherIcon == None:
+            temperatures = self.daily[0]["temp"]
+            minTemp = temperatures["min"]
+            maxTemp = temperatures["max"]
+            iconId = self.daily[0]["weather"][0]["icon"]
+            self.loadAndSaveIcon(iconId)
+            filename = "./icons" + iconId + ".png"
+            weatherIcon = Image.open(filename)
 
 
         while True:
+            # use this to time the loop and set the intervals for getWeather() and dayIndex
+            # on a Pi Zero W it's 8 loops/sec
+            # print("loopCounter = {} at {}".format(loopCounter, datetime.now().strftime("%c")))
             self.offscreen_canvas.Clear()
             now = datetime.now()
             timeNow = now.strftime("%I:%M")
             dateNow = now.strftime("%a %b %-d %Y")
-            timeMin = now.strftime("%M")
-            timeSec = now.strftime("%S")
             self.offscreen_canvas.Clear()
 
             # get the weather info every 30 min
-            if timeMin == "00" or timeMin == "30":
+            if loopCounter % halfhour == 0:
                 data = self.getWeather()
+                loopCounter = 0
 
-            # increment the dayIndex every minute
-            if int(timeSec) % 10 == 0  and not timeSec == lastTime:
-                dayIndex = (dayIndex + 1) % 7
-                lastTime = timeSec
-                if dayIndex == 0:
-                    dayName = "Today"
-                else:
-                    dayName = time.strftime("%a", time.localtime(self.daily[dayIndex]["dt"]))
-                # print("dayName = {}".format(dayName))
-                temperatures = self.daily[dayIndex]["temp"]
-                minTemp = temperatures["min"]
-                maxTemp = temperatures["max"]
-                iconId = self.daily[dayIndex]["weather"][0]["icon"]
-                self.loadAndSaveIcon(iconId)
-                filename = "./icons" + iconId + ".png"
-                weatherIcon = Image.open(filename)
+            # init the weather info iffi the http request has completed
+            #
+            if not self.weatherIcon == None:
+                # increment the dayIndex every minute
+                if loopCounter % tensec == 0:
+                    dayIndex = (dayIndex + 1) % 7
+                    if dayIndex == 0:
+                        dayName = "Today"
+                    else:
+                        dayName = time.strftime("%a", time.localtime(self.daily[dayIndex]["dt"]))
+                    temperatures = self.daily[dayIndex]["temp"]
+                    minTemp = temperatures["min"]
+                    maxTemp = temperatures["max"]
+                    iconId = self.daily[dayIndex]["weather"][0]["icon"]
+                    self.loadAndSaveIcon(iconId)
+                    filename = "./icons" + iconId + ".png"
+                    weatherIcon = Image.open(filename)
 
                 
             # draw the date
@@ -234,6 +249,7 @@ class panelApp(SampleBase):
                 
             time.sleep(0.05)
             self.offscreen_canvas = self.matrix.SwapOnVSync(self.offscreen_canvas)
+            loopCounter = loopCounter + 1
 
     """
     error handler for options, if second arg is '', the the whole section is missing
@@ -244,6 +260,7 @@ class panelApp(SampleBase):
             print("The options section '"+section+"' is missing or invalid")
         else:
             print("The key '"+key+"' in section '"+section+"' is missing or invalid")
+        self.offscreen_canvas.Clear()
         sys.exit(-1)
 
 
