@@ -197,7 +197,7 @@ class panelApp(SampleBase):
             slen2 = graphics.DrawText(self.offscreen_canvas, self.fontB,
                                     50, 2 * lineHeight, self.textColor, timeNow)
             # draw the alert text
-            if len(self.alertArray) > 0:
+            if len(self.alertArray) > 0 and alertNo < len(self.alertArray):
                 slen3 = graphics.DrawText(self.offscreen_canvas, self.fontMed,
                                          self.xpos, ypos, graphics.Color(255, 20, 20),
                                          self.alertArray[alertNo])
