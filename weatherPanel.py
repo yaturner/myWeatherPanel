@@ -27,8 +27,8 @@ class panelApp(SampleBase):
     """
     def __init__(self, *args, **kwargs):
         super(panelApp, self).__init__(*args, **kwargs)
-        self.sig = signal.SIGINT
-        signal.signal(self.sig, self.handler)
+        signal.signal(signal.SIGINT, self.handler)
+        signal.signal(signal.SIGTERM, self.handler)
     
     """
     get the curent weather data, if it is unavailable then just use what we have
