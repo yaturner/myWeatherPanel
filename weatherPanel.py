@@ -118,7 +118,10 @@ class panelApp(SampleBase):
             im = self.trimImage(im)
             im.thumbnail((36, 36))
             im.save(filename)
-        
+        else:
+            im = Image.open(filename)
+        return im
+                
         
     def drawImage(self, imageFilename):
         image=Image.open(imageFilename)
@@ -160,7 +163,6 @@ class panelApp(SampleBase):
             # use this to time the loop and set the intervals for getWeather() and dayIndex
             # on a Pi Zero W it's 8 loops/sec
             # print("loopCounter = {} at {}".format(loopCounter, datetime.now().strftime("%c")))
-            self.offscreen_canvas.Clear()
             now = datetime.now()
             timeNow = now.strftime("%I:%M")
             dateNow = now.strftime("%a %b %-d %Y")
@@ -185,17 +187,16 @@ class panelApp(SampleBase):
                     minTemp = temperatures["min"]
                     maxTemp = temperatures["max"]
                     iconId = self.daily[dayIndex]["weather"][0]["icon"]
-                    self.loadAndSaveIcon(iconId)
-                    filename = "./icons" + iconId + ".png"
-                    weatherIcon = Image.open(filename)
-
+                    weatherIcon = self.loadAndSaveIcon(iconId)
                 
             # draw the date
             slen1 = graphics.DrawText(self.offscreen_canvas, self.font,
-                                    12, lineHeight, self.textColor, dateNow)
+                                    12, lineHeight, graphics.Color(255,215, 0),
+                                      dateNow)
             # draw the time
             slen2 = graphics.DrawText(self.offscreen_canvas, self.fontB,
-                                    50, 2 * lineHeight, self.textColor, timeNow)
+                                    50, 2 * lineHeight + 1,
+                                      graphics.Color(218, 32, 32), timeNow)
             # draw the alert text
             if len(self.alertArray) > 0 and alertNo < len(self.alertArray):
                 slen3 = graphics.DrawText(self.offscreen_canvas, self.fontMed,
@@ -223,7 +224,7 @@ class panelApp(SampleBase):
                                           str(int(self.humidity)) + "%")
                 # draw the wind speed and direction
                 slen4 = graphics.DrawText(self.offscreen_canvas, self.fontMed,
-                                          12, 5*lineHeight + 1, graphics.Color(0, 255, 255),
+                                          12, 5*lineHeight + 2, graphics.Color(0, 255, 255),
                                           str(int(self.windSpeed)) + "mph from the " + self.windDir)
                 
                 
