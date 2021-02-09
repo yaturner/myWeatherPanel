@@ -195,7 +195,7 @@ class panelApp(SampleBase):
                                       dateNow)
             # draw the time
             slen2 = graphics.DrawText(self.offscreen_canvas, self.fontB,
-                                    50, 2 * lineHeight + 1,
+                                    42, 2 * lineHeight + 1,
                                       graphics.Color(218, 32, 32), timeNow)
             # draw the alert text
             if len(self.alertArray) > 0 and alertNo < len(self.alertArray):
@@ -207,7 +207,7 @@ class panelApp(SampleBase):
             #
             if not self.weatherIcon == None:
                 self.offscreen_canvas.SetImage(weatherIcon.convert('RGB'), 42,
-                                               2*lineHeight + self.lineSpacing)
+                                               2*lineHeight + self.lineSpacing + 1)
 
                 # draw the label
                 slen = graphics.DrawText(self.offscreen_canvas, self.fontSmall,
@@ -267,7 +267,7 @@ class panelApp(SampleBase):
 
     def setup(self):
         config = configparser.ConfigParser()
-        config.read('weatherApp.cfg')
+        config.read('weatherPanel.cfg')
         
         # Configuration for the led panels, if it doesn't exist
         options = RGBMatrixOptions()
