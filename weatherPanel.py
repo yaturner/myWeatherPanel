@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 from samplebase import SampleBase
 from rgbmatrix import graphics, RGBMatrix, RGBMatrixOptions
 from PIL import Image
@@ -10,10 +10,99 @@ import signal
 import sys
 import requests
 import io
-from cStringIO import StringIO
-import numpy as np
 from os import path
 import configparser
+import feedparser
+import numpy as np
+
+
+class rss:
+    
+    def __init__(self):
+        self.feed_name = 'CNN'
+        self.url = 'http://rss.cnn.com/rss/cnn_topstories.rss'
+        # self.url = 'http://rss.cnn.com/rss/cnn_us.rss'
+        self.limit = 12 * 3600 * 1000
+        self.current_time_millis = lambda: int(round(time.time() * 1000))
+        self.current_timestamp = self.current_time_millis()
+        self.posts = {} 
+        #   feed_name = sys.
+        
+        #   url = sys.argv[2]
+        #   db = '/var/www/radio/data/feeds.db'
+        
+#
+# function to determine if post is in db
+#
+    def post_is_in_db(self, title):
+        if title in self.posts.keys():
+            return True
+        else:
+            return False
+
+# return true if the title is in the database with a timestamp > limit
+    def post_is_in_db_with_old_timestamp(self, title):
+        for key in self.posts.keys():
+            # print("key = '{}', post = '{}'".format(key, self.posts[key]))
+            if title == self.posts[key].title:
+                ts_as_string = str(key)
+                ts = long(ts_as_string)
+                if current_timestamp - ts > limit:
+                    return True
+        return False
+
+
+    def sort_posts(self):
+        #
+        # get the feed data from the url
+        #
+        self.feed = feedparser.parse(self.url)
+
+        #
+        # figure out which posts to print
+        #
+        self.posts_to_print = []
+        self.posts_to_skip = []
+
+        print("number of entries = {}".format(len(self.feed.entries)))
+        # print("posts = {}".format(self.feed.entries[0]))
+        for post in self.feed.entries:
+            # if post is already in the database, skip it
+            # TODO check the time
+            title = post.title
+            # print("checking title '{}'".format(title))
+            if self.post_is_in_db_with_old_timestamp(title):
+                self.posts_to_skip.append(title)
+            else:
+                # print("adding {} to db".format(title))
+                self.posts_to_print.append(title)
+        self.add_posts_to_db()
+
+    def add_posts_to_db(self):
+        #
+        # add all the posts we're going to print to the database with the current timestamp
+        # (but only if they're not already in there)
+        #
+        for title in self.posts_to_print:
+            if not self.post_is_in_db(title):
+                self.posts[str(self.current_timestamp)] = title
+
+    def print_posts(self):
+        #
+        # output all of the new posts
+        #
+        count = 1
+        blockcount = 1
+        # print("posts to print = {}".format(len(self.posts_to_print)))
+        for title in self.posts_to_print:
+            if True:
+                print("\n" + time.strftime("%a, %b %d %I:%M %p") + '  ((( ' + self.feed_name + ' - ' +
+                      str(blockcount) + ' )))')
+                print("-----------------------------------------\n")
+                blockcount = blockcount + 1
+                print(title + "\n")
+                count = count + 1
+
 
 
 class panelApp(SampleBase):
@@ -27,6 +116,7 @@ class panelApp(SampleBase):
     """
     def __init__(self, *args, **kwargs):
         super(panelApp, self).__init__(*args, **kwargs)
+        self.rssApp = rss()
         signal.signal(signal.SIGINT, self.handler)
         signal.signal(signal.SIGTERM, self.handler)
     
@@ -110,7 +200,7 @@ class panelApp(SampleBase):
         filename = "./icons" + iconId + ".png"
         if not path.exists(filename): 
             r = requests.get(url, allow_redirects=True)
-            imgfile = StringIO(r.content)
+            imgfile = io.StringIO(r.content)
             img = Image.open(imgfile)
             rgba = np.array(img)
             rgba[rgba[...,-1]==0] = [0, 0, 0, 0]
@@ -133,9 +223,12 @@ class panelApp(SampleBase):
     def drawScreen(self):
         pos = 0
         alertNo = 0
+        rssNo = 0
         lineHeight = 10
 
         data = self.getWeather()
+        self.rssApp.sort_posts()
+        # print("Posts = {}".format(self.rssApp.posts_to_print))
 
         ypos = self.offscreen_canvas.height - self.lineSpacing
         self.xpos=self.offscreen_canvas.width
@@ -171,8 +264,13 @@ class panelApp(SampleBase):
             # get the weather info every 30 min
             if loopCounter % halfhour == 0:
                 data = self.getWeather()
-                loopCounter = 0
 
+            # get the RSS feed every 2 hours
+            if loopCounter % (4 * halfhour) == 0:
+                self.rssApp.sort_posts()
+                loopCounter = 0
+                
+                
             # init the weather info iffi the http request has completed
             #
             if not self.weatherIcon == None:
@@ -197,12 +295,17 @@ class panelApp(SampleBase):
             slen2 = graphics.DrawText(self.offscreen_canvas, self.fontB,
                                     42, 2 * lineHeight + 1,
                                       graphics.Color(218, 32, 32), timeNow)
-            # draw the alert text
-            if len(self.alertArray) > 0 and alertNo < len(self.alertArray):
-                slen3 = graphics.DrawText(self.offscreen_canvas, self.fontMed,
-                                         self.xpos, ypos, graphics.Color(255, 20, 20),
-                                         self.alertArray[alertNo])
-    
+            # draw the alert text or the RSS feed if there are no alerts
+            if len(self.alertArray) > 0:
+                if alertNo < len(self.alertArray):
+                    slen3 = graphics.DrawText(self.offscreen_canvas, self.fontMed,
+                                              self.xpos, ypos, graphics.Color(255, 20, 20),
+                                              self.alertArray[alertNo])
+            elif len(self.rssApp.posts_to_print) > 0:
+                    slen3 = graphics.DrawText(self.offscreen_canvas, self.fontMed,
+                                              self.xpos, ypos, graphics.Color(255, 20, 20),
+                                              self.rssApp.posts_to_print[rssNo])
+                
             # draw the weather info iffi the http request has completed
             #
             if not self.weatherIcon == None:
@@ -239,16 +342,21 @@ class panelApp(SampleBase):
                                           graphics.Color(0, 255, 128),
                                           str(int(minTemp)) + "/" +
                                           str(int(maxTemp)) + u'\u00b0'+"F")
-                
-            
+
+            # move the scroll text 1 pixel
             self.xpos = self.xpos - 1;
-            if len(self.alertArray) > 0 and (self.xpos + slen3) < 0:
-                self.xpos = self.offscreen_canvas.width 
-                alertNo = alertNo + 1
-                if alertNo >= len(self.alertArray):
-                    alertNo = 0
+            
+            if len(self.alertArray) > 0 or len(self.rssApp.posts_to_print) > 0:
+                if (self.xpos + slen3) < 0:
+                    self.xpos = self.offscreen_canvas.width 
+                    alertNo = alertNo + 1
+                    rssNo = rssNo + 1
+                    if alertNo >= len(self.alertArray):
+                        alertNo = 0
+                    if rssNo > len(self.rssApp.posts_to_print):
+                        rssNo = 0
                 
-            time.sleep(0.05)
+        # time.sleep(0.05)
             self.offscreen_canvas = self.matrix.SwapOnVSync(self.offscreen_canvas)
             loopCounter = loopCounter + 1
 
