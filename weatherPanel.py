@@ -353,10 +353,10 @@ class panelApp(SampleBase):
                     rssNo = rssNo + 1
                     if alertNo >= len(self.alertArray):
                         alertNo = 0
-                    if rssNo > len(self.rssApp.posts_to_print):
+                    if rssNo >= len(self.rssApp.posts_to_print):
                         rssNo = 0
                 
-        # time.sleep(0.05)
+            time.sleep(0.05)
             self.offscreen_canvas = self.matrix.SwapOnVSync(self.offscreen_canvas)
             loopCounter = loopCounter + 1
 
