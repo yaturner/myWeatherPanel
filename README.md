@@ -81,7 +81,7 @@ I strongly recommend going to the hzellers github web page and reading through t
 	sudo make
     cd bindings/paython
    
-follow the directions is the *README.md* file to install the bindings for python3
+Then follow the directions is the *README.md* file to install the bindings for python3
 
 
 #### Configuration
@@ -91,11 +91,11 @@ if you do not already have an account with Open Weather Map go to
 
 [Open Weather Map](openweathermap.org)
 
-and create an account, the free one is sufficient, once you created your account, login and right click on your user name in the menu bar. Select **My API keys** and make a note of your key.
+and create an account, the free one is sufficient, once you have created your account, login and click on your user name in the menu bar. Select **My API keys** and make a note of your key.
 
 ###### Configuration File
 
-Using your favorite editor, edit the *sample_weatherPanel.cfg* file in the *weatherPanel* directory, the fields should be self explanatory,
+Using your favorite editor, edit the *sample_weatherPanel.cfg* file in the *weatherPanel* directory, the fields are:
 - the **lat** and **lon** are the latitude and longitude fromwhere you want the weather
 - **appid** is the API key you obtained from openweathermap.org
 - **units** are imperial or metric
@@ -111,7 +111,8 @@ Save the edited file as *weatherPanel.cfg*
 ## And We're Off
 
 That should do it, to run it:
-	chmod +x weatherPanel.py
+
+     chmod +x weatherPanel.py
     sudo ./weatherPanel.py
     
     
