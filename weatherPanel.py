@@ -4,7 +4,6 @@ from rgbmatrix import graphics, RGBMatrix, RGBMatrixOptions
 from PIL import Image
 import time
 from datetime import datetime
-import paho.mqtt.client as mqtt # Import the MQTT library
 import json
 import signal
 import sys
