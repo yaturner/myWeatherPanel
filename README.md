@@ -112,7 +112,9 @@ Save the edited file as *weatherPanel.cfg*
 
 That should do it, to run it:
 
-     chmod +x weatherPanel.py
+    chmod +x weatherPanel.py #once only
     sudo ./weatherPanel.py
-    
+
+## Extras
+If you wish to run and stop the application from crontab, there are two shell scripts, *run.sh* and *stop.sh* that can be used to to do that 
     
