@@ -154,7 +154,7 @@ class panelApp(SampleBase):
             alerts=[]
         iconId = current["weather"][0]["icon"]
         self.loadAndSaveIcon(iconId)
-        filename = "./icons" + iconId + ".png"
+        filename = "./icons/" + iconId + ".png"
         self.weatherIcon = Image.open(filename)
 
         i = 0
@@ -196,7 +196,7 @@ class panelApp(SampleBase):
     """
     def loadAndSaveIcon(self, iconId):
         url = "http://openweathermap.org/img/w/" + iconId + ".png"
-        filename = "./icons" + iconId + ".png"
+        filename = "./icons/" + iconId + ".png"
         if not path.exists(filename): 
             r = requests.get(url, allow_redirects=True)
             imgfile = io.StringIO(r.content)
@@ -247,7 +247,7 @@ class panelApp(SampleBase):
             maxTemp = temperatures["max"]
             iconId = self.daily[0]["weather"][0]["icon"]
             self.loadAndSaveIcon(iconId)
-            filename = "./icons" + iconId + ".png"
+            filename = "./icons/" + iconId + ".png"
             weatherIcon = Image.open(filename)
 
 
