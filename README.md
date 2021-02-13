@@ -116,5 +116,5 @@ That should do it, to run it:
     sudo ./weatherPanel.py
 
 ## Extras
-If you wish to run and stop the application from crontab, there are two shell scripts, *run.sh* and *stop.sh* that can be used to to do that 
+If you wish to run and stop the application from crontab, there are two shell scripts, *run.sh* and *stop.sh* that can be used to do that 
     

@@ -20,15 +20,10 @@ class rss:
     def __init__(self):
         self.feed_name = 'CNN'
         self.url = 'http://rss.cnn.com/rss/cnn_topstories.rss'
-        # self.url = 'http://rss.cnn.com/rss/cnn_us.rss'
         self.limit = 12 * 3600 * 1000
         self.current_time_millis = lambda: int(round(time.time() * 1000))
         self.current_timestamp = self.current_time_millis()
         self.posts = {} 
-        #   feed_name = sys.
-        
-        #   url = sys.argv[2]
-        #   db = '/var/www/radio/data/feeds.db'
         
 #
 # function to determine if post is in db
@@ -55,6 +50,7 @@ class rss:
         #
         # get the feed data from the url
         #
+        print("Getting RSS feed from {}".format(self.url))
         self.feed = feedparser.parse(self.url)
 
         #
@@ -63,8 +59,7 @@ class rss:
         self.posts_to_print = []
         self.posts_to_skip = []
 
-        print("number of entries = {}".format(len(self.feed.entries)))
-        # print("posts = {}".format(self.feed.entries[0]))
+        # print("number of entries = {}".format(len(self.feed.entries)))
         for post in self.feed.entries:
             # if post is already in the database, skip it
             # TODO check the time
@@ -157,11 +152,13 @@ class panelApp(SampleBase):
         filename = "./icons/" + iconId + ".png"
         self.weatherIcon = Image.open(filename)
 
-        i = 0
-        self.alertArray = []
+        # this will delete any 'old' alerts on every other call
+        # allowing us to alternate between alerts and RSS feed
         for alert in alerts:
-            self.alertArray.append(alert["description"].replace("\n", " "))
-            i = i + 1
+            if not alert in self.alertArray:
+                self.alertArray.append(alert["description"].replace("\n", "***"))
+            else:
+                self.alertArray.remove(alert)
 
         self.daily = data["daily"]
         temperatures = self.daily[0]["temp"]
@@ -227,13 +224,13 @@ class panelApp(SampleBase):
 
         data = self.getWeather()
         self.rssApp.sort_posts()
-        # print("Posts = {}".format(self.rssApp.posts_to_print))
 
         ypos = self.offscreen_canvas.height - self.lineSpacing
         self.xpos=self.offscreen_canvas.width
 
         loopCounter = 0
-        halfhour = 8 * 30 * 60 
+        hour = 8 * 60 * 60
+        fourhour = 4 * hour
         tensec = 8 * 10 
         
         dayIndex = 0
@@ -260,16 +257,6 @@ class panelApp(SampleBase):
             dateNow = now.strftime("%a %b %-d %Y")
             self.offscreen_canvas.Clear()
 
-            # get the weather info every 30 min
-            if loopCounter % halfhour == 0:
-                data = self.getWeather()
-
-            # get the RSS feed every 2 hours
-            if loopCounter % (4 * halfhour) == 0:
-                self.rssApp.sort_posts()
-                loopCounter = 0
-                
-                
             # init the weather info iffi the http request has completed
             #
             if not self.weatherIcon == None:
@@ -347,6 +334,16 @@ class panelApp(SampleBase):
             
             if len(self.alertArray) > 0 or len(self.rssApp.posts_to_print) > 0:
                 if (self.xpos + slen3) < 0:
+                    # since fetching the weather/RSS feed can change
+                    # the scrolling text, only do it when there is
+                    # nothing to scroll
+
+                    # get the weather and RSS info every hour
+                    if loopCounter % hour == 0:
+                        data = self.getWeather()
+                        self.rssApp.sort_posts()
+                        loopCounter = 0
+
                     self.xpos = self.offscreen_canvas.width 
                     alertNo = alertNo + 1
                     rssNo = rssNo + 1
@@ -424,7 +421,6 @@ class panelApp(SampleBase):
         self.weatherUri="https://api.openweathermap.org/data/2.5/onecall"
         self.params="lat="+lat+"&lon="+lon+"&appid="+appid+"&units="+units
                 
-
         self.offscreen_canvas = self.matrix.CreateFrameCanvas()
         self.font = graphics.Font()
         self.font.LoadFont("./fonts/7x13.bdf")
