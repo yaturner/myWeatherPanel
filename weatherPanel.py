@@ -385,10 +385,10 @@ class panelApp(SampleBase):
     """
     def handleOptionsError(self, section, key):
         if key == '':
-            print("The options section '"+section+"' is missing or invalid")
+            print("The configuration's section '"+section+"' is missing or contains invalid entries")
         else:
             print("The key '"+key+"' in section '"+section+"' is missing or invalid")
-        self.offscreen_canvas.Clear()
+        print("Please consult the README.md file for more information")
         sys.exit(-1)
 
 
