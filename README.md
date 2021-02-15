@@ -14,7 +14,7 @@ OverView
 This project was written in python3 on a Raspberry Pi 3B+, however almost any RPi can be used that supports WiFi. I actually run the project on a Raspberry Pi Zero WH. The project evolved as I learned more and more about using LED Panels and writing large python projects, so I am sure there are multiple places where the code can be made better, feel free to give me feedback. Here is an example of what the completed project looks like.
 
 
-![Figure 1!](/images/figure1.jpg)
+![Figure 1!](/images/20210215_102659.mp4)
 
 The left hand side shows today's temperature and humidity, the right hand side cycles through the week showing the high/low temperatures and the weather icon for each day. Below that is the wind speed and direction, and below that is a scrolling text that shows today's weather alerts, if there are any, for roughly 30 minutes then it will show to entries from the RSS feed(s) specified in the cfg file (see below).
 The application will keep alternating between weather alerts and RSS feed entries. The variable *timeOut* in the code can be tweaked to change the display period. If more that one RSS feed is specified the application will rotate through them at every time out.
