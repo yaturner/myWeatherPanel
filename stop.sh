@@ -1,1 +1,3 @@
-sudo kill `pgrep weatherPanel`
+#!/bin/bash
+sudo kill `pgrep -f weatherPanel.py`
+
