@@ -1,14 +1,19 @@
 package com.darcangel.wherediputthat
 
 import android.os.Bundle
+import android.util.Log
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
 import androidx.viewpager.widget.ViewPager
 import androidx.appcompat.app.AppCompatActivity
-import android.view.Menu
-import android.view.MenuItem
+import androidx.lifecycle.LiveData
+import com.darcangel.wherediputthat.database.AppDatabase
+import com.darcangel.wherediputthat.database.Category
 import com.darcangel.wherediputthat.ui.main.SectionsPagerAdapter
+import io.reactivex.Scheduler
+import io.reactivex.Single
+import io.reactivex.schedulers.Schedulers
 
 class MainActivity : AppCompatActivity() {
 
@@ -26,5 +31,20 @@ class MainActivity : AppCompatActivity() {
             Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show()
         }
+
+        //Initialize the DB
+//        Log.d("categories", "items = $categoryList")
+    }
+
+    public fun thread(start: Boolean = true,
+                      isDaemon: Boolean = false,
+                      contextClassLoader: ClassLoader? = null,
+                      name: String? = null,
+                      priority: Int = -1,
+                      block: () -> Unit): Thread {
+        val appDatabase : AppDatabase = AppDatabase.getInstance(this)
+        val cat : Category = Category("Home")
+        appDatabase.getCategoryDao().addCategory(cat)
+        val categoryList : List<Category> = appDatabase.getCategoryDao().getAllCategories()
     }
 }
