@@ -17,23 +17,22 @@ import numpy as np
 
 
 class rss:
-    
     def __init__(self):
         self.limit = 12 * 3600 * 1000
         self.current_time_millis = lambda: int(round(time.time() * 1000))
         self.current_timestamp = self.current_time_millis()
-        self.posts = {} 
-        
-#
-# function to determine if post is in db
-#
+        self.posts = {}
+
+    #
+    # function to determine if post is in db
+    #
     def post_is_in_db(self, title):
         if title in self.posts.keys():
             return True
         else:
             return False
 
-# return true if the title is in the database with a timestamp > limit
+    # return true if the title is in the database with a timestamp > limit
     def post_is_in_db_with_old_timestamp(self, title):
         for key in self.posts.keys():
             # print("key = '{}', post = '{}'".format(key, self.posts[key]))
@@ -43,7 +42,6 @@ class rss:
                 if self.current_timestamp - ts > self.limit:
                     return True
         return False
-
 
     def sort_posts(self):
         #
@@ -63,11 +61,11 @@ class rss:
         for entry in self.feed.entries:
             # print("keys = {}".format(entry.keys()))
             # if it is not today's news, skip it
-            if 'published_parsed' in entry.keys(): 
-                pparsed = entry['published_parsed']
+            if "published_parsed" in entry.keys():
+                pparsed = entry["published_parsed"]
                 if self.verbose:
                     print("pparsed = {}".format(pparsed))
-                if not now.day == pparsed.tm_mday :
+                if not now.day == pparsed.tm_mday:
                     if self.verbose:
                         print("discarding yesterday's news")
                     continue
@@ -97,18 +95,23 @@ class panelApp(SampleBase):
     """
     Initialize
     """
+
     def __init__(self, *args, **kwargs):
         super(panelApp, self).__init__(*args, **kwargs)
         self.rssApp = rss()
         self.iconSize = 32
-    
+
     """
     get the curent weather data, if it is unavailable then just use what we have
     from the last successful call
     """
+
     def getWeather(self):
-        print("getting weather from {}?{} at {}".format(self.weatherUri, self.params,
-                                                        datetime.now().strftime("%c")))
+        print(
+            "getting weather from {}?{} at {}".format(
+                self.weatherUri, self.params, datetime.now().strftime("%c")
+            )
+        )
         try:
             r = requests.get(url=self.weatherUri, params=self.params)
         except:
@@ -117,31 +120,32 @@ class panelApp(SampleBase):
             return
         data = r.json()
         self.parseData(data)
-        
+
     """
     parse the Json returned from getWeather()
     """
+
     def parseData(self, data):
-        current=data["current"]
-        self.sunrise=current["sunrise"]
-        self.sunset=current["sunset"]
-        self.temperatureNow=current["temp"]
-        self.clouds=current["clouds"]
-        self.windSpeed=current["wind_speed"]
-        self.windDir=self.degToCompass(int(current["wind_deg"]))
-        self.humidity=current["humidity"]
+        current = data["current"]
+        self.sunrise = current["sunrise"]
+        self.sunset = current["sunset"]
+        self.temperatureNow = current["temp"]
+        self.clouds = current["clouds"]
+        self.windSpeed = current["wind_speed"]
+        self.windDir = self.degToCompass(int(current["wind_deg"]))
+        self.humidity = current["humidity"]
         # there may not be any alerts currently
         try:
-            alerts=data["alerts"]
+            alerts = data["alerts"]
         except:
-            alerts=[]
+            alerts = []
         iconId = current["weather"][0]["icon"]
         self.loadAndSaveIcon(iconId)
         filename = "./icons/" + iconId + ".png"
         self.weatherIcon = Image.open(filename)
         # this will delete any 'old' alerts on every call
         for alert in alerts:
-            description = alert['description'].replace("\n", " ")
+            description = alert["description"].replace("\n", " ")
             if not description in self.alertArray:
                 self.alertArray.append(description)
             else:
@@ -152,55 +156,76 @@ class panelApp(SampleBase):
         self.minTemp = temperatures["min"]
         self.maxTemp = temperatures["max"]
 
-
     def degToCompass(self, num):
-        val=int((num/22.5)+.5)
-        arr=["N","NNE","NE","ENE","E","ESE", "SE", "SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"]
+        val = int((num / 22.5) + 0.5)
+        arr = [
+            "N",
+            "NNE",
+            "NE",
+            "ENE",
+            "E",
+            "ESE",
+            "SE",
+            "SSE",
+            "S",
+            "SSW",
+            "SW",
+            "WSW",
+            "W",
+            "WNW",
+            "NW",
+            "NNW",
+        ]
         return arr[(val % 16)]
-    
 
     """
     Image handlers
     """
+
     def trimImage(self, image):
         image_data = np.asarray(image)
         image_data_bw = image_data.max(axis=2)
-        non_empty_columns = np.where(image_data_bw.max(axis=0)>0)[0]
-        non_empty_rows = np.where(image_data_bw.max(axis=1)>0)[0]
-        cropBox = (min(non_empty_rows), max(non_empty_rows), min(non_empty_columns),
-                   max(non_empty_columns))
-        image_data_new = image_data[cropBox[0]:cropBox[1]+1, cropBox[2]:cropBox[3]+1 , :]
+        non_empty_columns = np.where(image_data_bw.max(axis=0) > 0)[0]
+        non_empty_rows = np.where(image_data_bw.max(axis=1) > 0)[0]
+        cropBox = (
+            min(non_empty_rows),
+            max(non_empty_rows),
+            min(non_empty_columns),
+            max(non_empty_columns),
+        )
+        image_data_new = image_data[
+            cropBox[0] : cropBox[1] + 1, cropBox[2] : cropBox[3] + 1, :
+        ]
         new_image = Image.fromarray(image_data_new)
         return new_image
-
 
     """
     load and save the png to disk iffi it is not already saved
     """
+
     def loadAndSaveIcon(self, iconId):
         url = "http://openweathermap.org/img/w/" + iconId + ".png"
         filename = "./icons/" + iconId + ".png"
-        if not path.exists(filename): 
+        if not path.exists(filename):
             r = requests.get(url, allow_redirects=True)
-            imgfile = io.StringIO(r.content)
+            imgfile = io.BytesIO(r.content)
             img = Image.open(imgfile)
             rgba = np.array(img)
-            rgba[rgba[...,-1]==0] = [0, 0, 0, 0]
+            rgba[rgba[..., -1] == 0] = [0, 0, 0, 0]
             im = Image.fromarray(rgba)
             im = self.trimImage(im)
             im.thumbnail((36, 36))
+            if self.verbose:
+                print("Creating icon file: {}".format(filename))
             im.save(filename)
         else:
             im = Image.open(filename)
         return im
-                
-        
-    def drawImage(self, imageFilename):
-        image=Image.open(imageFilename)
-        image.thumbnail((self.iconSize, self.iconSize), Image.ANTIALIAS)
-        self.matrix.SetImage(image.convert('RGB'), self.xpos, 30)
-        
 
+    def drawImage(self, imageFilename):
+        image = Image.open(imageFilename)
+        image.thumbnail((self.iconSize, self.iconSize), Image.ANTIALIAS)
+        self.matrix.SetImage(image.convert("RGB"), self.xpos, 30)
 
     def drawScreen(self):
         alertNo = 0
@@ -211,16 +236,16 @@ class panelApp(SampleBase):
         self.getWeather()
 
         ypos = self.offscreen_canvas.height - self.lineSpacing
-        self.xpos=self.offscreen_canvas.width
+        self.xpos = self.offscreen_canvas.width
 
         loopCounter = 0
         timeOut = self.rssTimeOut
         # timeOut = 8 * 60 * 2 # debugging only
-        tensec = 8 * 10 
-        
+        tensec = 8 * 10
+
         dayIndex = 0
         dayName = "Today"
-        
+
         # initialize the weather info iffi the http request has completed
         #
         if not self.weatherIcon == None:
@@ -251,75 +276,127 @@ class panelApp(SampleBase):
                     if dayIndex == 0:
                         dayName = "Today"
                     else:
-                        dayName = time.strftime("%a", time.localtime(self.daily[dayIndex]["dt"]))
+                        dayName = time.strftime(
+                            "%a", time.localtime(self.daily[dayIndex]["dt"])
+                        )
                     temperatures = self.daily[dayIndex]["temp"]
                     minTemp = temperatures["min"]
                     maxTemp = temperatures["max"]
                     iconId = self.daily[dayIndex]["weather"][0]["icon"]
                     weatherIcon = self.loadAndSaveIcon(iconId)
-                
+
             # draw the date
-            graphics.DrawText(self.offscreen_canvas, self.font,
-                                    12, lineHeight, graphics.Color(255,215, 0),
-                                      dateNow)
+            graphics.DrawText(
+                self.offscreen_canvas,
+                self.font,
+                12,
+                lineHeight,
+                graphics.Color(255, 215, 0),
+                dateNow,
+            )
             # draw the time
-            graphics.DrawText(self.offscreen_canvas, self.fontB,
-                                    42, 2 * lineHeight + 1,
-                                      graphics.Color(218, 32, 32), timeNow)
+            graphics.DrawText(
+                self.offscreen_canvas,
+                self.fontB,
+                42,
+                2 * lineHeight + 1,
+                graphics.Color(218, 32, 32),
+                timeNow,
+            )
             # draw the alert text or the RSS feed if there are no alerts
             # if feedSwitch is True - draw alerts, else draw RSS
             if feedSwitch:
                 if len(self.alertArray) > 0:
-                    slen3 = graphics.DrawText(self.offscreen_canvas, self.fontMed,
-                                              self.xpos, ypos, graphics.Color(255, 20, 20),
-                                              self.alertArray[alertNo])
+                    slen3 = graphics.DrawText(
+                        self.offscreen_canvas,
+                        self.fontMed,
+                        self.xpos,
+                        ypos,
+                        graphics.Color(255, 20, 20),
+                        self.alertArray[alertNo],
+                    )
             else:
                 # print("printing post[{}] = '{}'".format(rssNo, self.rssApp.posts_to_print[rssNo]))
                 if len(self.rssApp.posts_to_print) > 0:
-                    slen3 = graphics.DrawText(self.offscreen_canvas, self.fontMed,
-                                              self.xpos, ypos, graphics.Color(255, 20, 20),
-                                              self.rssApp.posts_to_print[rssNo])
-                
+                    slen3 = graphics.DrawText(
+                        self.offscreen_canvas,
+                        self.fontMed,
+                        self.xpos,
+                        ypos,
+                        graphics.Color(255, 20, 20),
+                        self.rssApp.posts_to_print[rssNo],
+                    )
+
             # draw the weather info iffi the http request has completed
             #
             if not self.weatherIcon == None:
-                self.offscreen_canvas.SetImage(weatherIcon.convert('RGB'), 42,
-                                               2*lineHeight + self.lineSpacing + 1)
+                self.offscreen_canvas.SetImage(
+                    weatherIcon.convert("RGB"),
+                    42,
+                    2 * lineHeight + self.lineSpacing + 1,
+                )
 
                 # draw the label
-                graphics.DrawText(self.offscreen_canvas, self.fontSmall,
-                                         2, 2*lineHeight+self.lineSpacing, graphics.Color(255, 255, 255),
-                                         "Now:")
-                
+                graphics.DrawText(
+                    self.offscreen_canvas,
+                    self.fontSmall,
+                    2,
+                    2 * lineHeight + self.lineSpacing,
+                    graphics.Color(255, 255, 255),
+                    "Now:",
+                )
+
                 # draw the current temperature
-                graphics.DrawText(self.offscreen_canvas, self.fontMed,
-                                          2, 3*lineHeight+self.lineSpacing, graphics.Color(0, 255, 0),
-                                          str(int(self.temperatureNow)) + u'\u00b0'+"F")
+                graphics.DrawText(
+                    self.offscreen_canvas,
+                    self.fontMed,
+                    2,
+                    3 * lineHeight + self.lineSpacing,
+                    graphics.Color(0, 255, 0),
+                    str(int(self.temperatureNow)) + u"\u00b0" + "F",
+                )
                 # draw the hunidity
-                graphics.DrawText(self.offscreen_canvas, self.fontMed,
-                                          2, 4*lineHeight+self.lineSpacing, graphics.Color(0, 128, 255),
-                                          str(int(self.humidity)) + "%")
+                graphics.DrawText(
+                    self.offscreen_canvas,
+                    self.fontMed,
+                    2,
+                    4 * lineHeight + self.lineSpacing,
+                    graphics.Color(0, 128, 255),
+                    str(int(self.humidity)) + "%",
+                )
                 # draw the wind speed and direction
-                graphics.DrawText(self.offscreen_canvas, self.fontMed,
-                                          12, 5*lineHeight + 2, graphics.Color(0, 255, 255),
-                                          str(int(self.windSpeed)) + "mph from the " + self.windDir)
-                
-                
+                graphics.DrawText(
+                    self.offscreen_canvas,
+                    self.fontMed,
+                    12,
+                    5 * lineHeight + 2,
+                    graphics.Color(0, 255, 255),
+                    str(int(self.windSpeed)) + "mph from the " + self.windDir,
+                )
+
                 # draw the label
-                graphics.DrawText(self.offscreen_canvas, self.fontSmall,
-                                         50+46, 2*lineHeight+self.lineSpacing, graphics.Color(255, 255, 255),
-                                         dayName + ":")
-                
+                graphics.DrawText(
+                    self.offscreen_canvas,
+                    self.fontSmall,
+                    50 + 46,
+                    2 * lineHeight + self.lineSpacing,
+                    graphics.Color(255, 255, 255),
+                    dayName + ":",
+                )
+
                 # draw the min/max temperatures
-                graphics.DrawText(self.offscreen_canvas, self.fontMed,
-                                          50+36, 3*lineHeight+self.lineSpacing,
-                                          graphics.Color(0, 255, 128),
-                                          str(int(minTemp)) + "/" +
-                                          str(int(maxTemp)) + u'\u00b0'+"F")
+                graphics.DrawText(
+                    self.offscreen_canvas,
+                    self.fontMed,
+                    50 + 36,
+                    3 * lineHeight + self.lineSpacing,
+                    graphics.Color(0, 255, 128),
+                    str(int(minTemp)) + "/" + str(int(maxTemp)) + u"\u00b0" + "F",
+                )
 
             # move the scroll text 1 pixel
             self.xpos = self.xpos - 1
-            
+
             if len(self.alertArray) > 0 or len(self.rssApp.posts_to_print) > 0:
                 if (self.xpos + slen3) < 0:
                     # since fetching the weather/RSS feed can change
@@ -328,7 +405,7 @@ class panelApp(SampleBase):
 
                     # get the weather and RSS info every timeOut passes through the loop
                     # if(loopCounter % 20) == 0:
-                        # print("loopCounter = {}, timeOut = {}".format(loopCounter, timeOut))
+                    # print("loopCounter = {}, timeOut = {}".format(loopCounter, timeOut))
                     if loopCounter > timeOut:
                         # change the scrolling display data
                         feedSwitch = not feedSwitch
@@ -343,15 +420,14 @@ class panelApp(SampleBase):
                                 self.feedNo += 1
                             if self.feedNo >= feedArrayLen:
                                 self.feedNo = 0
-                            self.rssApp.url = self.feedArray[self.feedNo] 
+                            self.rssApp.url = self.feedArray[self.feedNo]
                             self.rssApp.sort_posts()
 
-                        #reset the loop counter
+                        # reset the loop counter
                         loopCounter = 0
 
-
                     # Start scrolling the next alert or RSS entry
-                    self.xpos = self.offscreen_canvas.width 
+                    self.xpos = self.offscreen_canvas.width
                     if feedSwitch:
                         alertNo = alertNo + 1
                         if alertNo >= len(self.alertArray):
@@ -361,7 +437,7 @@ class panelApp(SampleBase):
                         # print("rssNo = {}, length = {}".format(rssNo, len(self.rssApp.posts_to_print)))
                         if rssNo >= len(self.rssApp.posts_to_print):
                             rssNo = 0
-                
+
             time.sleep(0.075)
             self.offscreen_canvas = self.matrix.SwapOnVSync(self.offscreen_canvas)
             loopCounter = loopCounter + 1
@@ -370,81 +446,96 @@ class panelApp(SampleBase):
     error handler for options, if second arg is '', the the whole section is missing
     or invalid
     """
+
     def handleOptionsError(self, section, key):
-        if key == '':
-            print("The configuration's section '"+section+"' is missing or contains invalid entries")
+        if key == "":
+            print(
+                "The configuration's section '"
+                + section
+                + "' is missing or contains invalid entries"
+            )
         else:
-            print("The key '"+key+"' in section '"+section+"' is missing or invalid")
+            print(
+                "The key '"
+                + key
+                + "' in section '"
+                + section
+                + "' is missing or invalid"
+            )
         print("Please consult the README.md file for more information")
         sys.exit(-1)
 
-
     def setup(self):
         config = configparser.ConfigParser()
-        config.read('weatherPanel.cfg')
-        
+        config.read("weatherPanel.cfg")
+
         #
         # LED section
         #
         options = RGBMatrixOptions()
-        if 'LED' in config:
-            ledOptions = config['LED']
-            options.cols = int(ledOptions.get('cols', 64))
-            options.rows = int(ledOptions.get('rows', 32))
-            options.chain_length = int(ledOptions.get('chain_length', 4))
-            options.parallel = int(ledOptions.get('parallel', 1))
-            options.hardware_mapping = ledOptions.get('hardware_mapping', 'adafruit-hat')
-            options.pixel_mapper_config = ledOptions.get('pixel_mapper_config', 'U-mapper')
-            self.matrix = RGBMatrix(options = options)
+        if "LED" in config:
+            ledOptions = config["LED"]
+            options.cols = int(ledOptions.get("cols", 64))
+            options.rows = int(ledOptions.get("rows", 32))
+            options.chain_length = int(ledOptions.get("chain_length", 4))
+            options.parallel = int(ledOptions.get("parallel", 1))
+            options.hardware_mapping = ledOptions.get(
+                "hardware_mapping", "adafruit-hat"
+            )
+            options.pixel_mapper_config = ledOptions.get(
+                "pixel_mapper_config", "U-mapper"
+            )
+            self.matrix = RGBMatrix(options=options)
         else:
-            self.handleOptionsError('LED', '')
+            self.handleOptionsError("LED", "")
 
         #
         # WEATHER section
         #
-        if 'WEATHER' in config:
-            weatherOptions = config['WEATHER']
-            if 'lat' in weatherOptions:
-                lat = weatherOptions.get('lat')
+        if "WEATHER" in config:
+            weatherOptions = config["WEATHER"]
+            if "lat" in weatherOptions:
+                lat = weatherOptions.get("lat")
             else:
-                self.handleOptionsError('WEATHER', 'lat')
-            if 'lon' in weatherOptions:
-                lon = weatherOptions.get('lon')
+                self.handleOptionsError("WEATHER", "lat")
+            if "lon" in weatherOptions:
+                lon = weatherOptions.get("lon")
             else:
-                self.handleOptionsError('WEATHER', 'lon')
-            if 'units' in weatherOptions:
-                units = weatherOptions.get('units', 'imperial')
-            if 'appid' in weatherOptions:
-                appid = weatherOptions['appid']
+                self.handleOptionsError("WEATHER", "lon")
+            if "units" in weatherOptions:
+                units = weatherOptions.get("units", "imperial")
+            if "appid" in weatherOptions:
+                appid = weatherOptions["appid"]
             else:
-                self.handleOptionsError('WEATHER', 'appid')
+                self.handleOptionsError("WEATHER", "appid")
         else:
-            self.handleOptionsError('WEATHER', '')
-        self.weatherUri="https://api.openweathermap.org/data/2.5/onecall"
-        self.params="lat="+lat+"&lon="+lon+"&appid="+appid+"&units="+units
-
+            self.handleOptionsError("WEATHER", "")
+        self.weatherUri = "https://api.openweathermap.org/data/2.5/onecall"
+        self.params = (
+            "lat=" + lat + "&lon=" + lon + "&appid=" + appid + "&units=" + units
+        )
 
         #
         # RSS section
         #
         self.feedArray = []
-        if 'RSS' in config:
-            rssOptions = config['RSS']
-            if 'feed' in rssOptions:
-                self.feedArray = rssOptions.get('feed', '').split("\n")
+        if "RSS" in config:
+            rssOptions = config["RSS"]
+            if "feed" in rssOptions:
+                self.feedArray = rssOptions.get("feed", "").split("\n")
                 self.rssApp.url = self.feedArray[0]
 
         #
         # MISC section
         #
-        if 'MISC' in config:
-            miscOptions = config['MISC']
-            self.weatherTimeOut = int(miscOptions.get('weatherTimeOut', 8*60*10))
-            self.rssTimeOut = int(miscOptions.get('rssTimeOut', 8*60*30))
-            self.rssApp.verbose = self.verbose = miscOptions.get('verbose', False)
+        if "MISC" in config:
+            miscOptions = config["MISC"]
+            self.weatherTimeOut = int(miscOptions.get("weatherTimeOut", 8 * 60 * 10))
+            self.rssTimeOut = int(miscOptions.get("rssTimeOut", 8 * 60 * 30))
+            self.rssApp.verbose = self.verbose = miscOptions.get("verbose", False)
         else:
-            self.weatherTimeOut =  8 * 60 * 10
-            self.rssTimeOut =  8 * 60 * 30
+            self.weatherTimeOut = 8 * 60 * 10
+            self.rssTimeOut = 8 * 60 * 30
             self.rssApp.verbose = self.verbose = False
 
         self.offscreen_canvas = self.matrix.CreateFrameCanvas()
@@ -459,12 +550,13 @@ class panelApp(SampleBase):
         self.textColor = graphics.Color(0, 0, 128)
         self.xpos = 0
         self.lineSpacing = 1
-    
-        self.degreeSign = '\u00B0'
-        
+
+        self.degreeSign = "\u00B0"
+
         self.alertArray = []
         self.weatherIcon = None
         self.feedNo = 0
+
 
 def handler(signum, frame):
     global app
@@ -472,19 +564,17 @@ def handler(signum, frame):
     app.offscreen_canvas.Clear()
     sys.exit(0)
 
+
 def main():
     global app
-    
+
     app = panelApp()
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
     app.setup()
     app.drawScreen()
 
-        
+
 # Main function
 if __name__ == "__main__":
     main()
-    
-        
-
